@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Azul</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect x='5' y='5' width='90' height='90' rx='16' fill='%232f6fd6'/><path d='M50 18 82 50 50 82 18 50z' fill='%23fff' opacity='.85'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Fraunces:opsz,wght@9..144,700&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<style>
+:root{
+  --bg:#f3eee4; --panel:#fffdf8; --ink:#1f2a44; --muted:#7a7f93; --line:#e3dccd;
+  --navy:#1d3f7a; --navy-d:#12295a; --green:#2f8a5b; --green-d:#1f6441; --gold:#e0a53a; --gold-d:#ad7a1d; --red:#c8453a;
+  --wood:#efe2c8; --wood-d:#d6c19a; --slot:#ebe4d5; --slot-d:#d8cfbd;
+  --t:34px; --tg:3px; --radius:16px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{
+  font-family:"Baloo 2",system-ui,"Segoe UI",sans-serif;color:var(--ink);
+  background:
+    radial-gradient(circle at 0 0,rgba(47,111,214,.13) 0,transparent 40%),
+    radial-gradient(circle at 100% 100%,rgba(224,165,58,.14) 0,transparent 45%),
+    var(--bg);
+  background-attachment:fixed;
+}
+button{font-family:inherit;cursor:pointer}
+.hidden{display:none!important}
+
+/* ---------- Lobby ---------- */
+#lobby{min-height:100vh;display:grid;place-items:center;padding:24px 16px}
+.lobby-card{
+  width:100%;max-width:430px;background:var(--panel);border-radius:28px;padding:26px 24px;
+  box-shadow:0 14px 40px rgba(29,63,122,.16);text-align:center;border:3px solid var(--line);
+}
+.logo{display:flex;justify-content:center;gap:6px}
+.logo .tile{--t:30px}
+h1{margin:10px 0 0;font-family:"Fraunces",serif;font-weight:700;font-size:2.8rem;line-height:1;color:var(--navy)}
+.tag{color:var(--muted);margin:4px 0 16px}
+label{display:block;text-align:left;font-weight:700;font-size:.95rem;margin:12px 0 4px}
+input{
+  width:100%;font:inherit;font-size:1.05rem;padding:10px 14px;border-radius:12px;
+  border:2px solid var(--line);background:#fff;color:var(--ink);outline:none;
+}
+input:focus{border-color:var(--navy)}
+#codeInput{text-transform:uppercase;letter-spacing:4px;text-align:center;font-weight:800}
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;border:0;border-radius:14px;
+  padding:10px 16px;font-size:1.02rem;font-weight:800;color:#fff;background:var(--navy);
+  box-shadow:0 4px 0 var(--navy-d);transition:transform .08s, box-shadow .08s;
+}
+.btn:active{transform:translateY(3px);box-shadow:0 1px 0 var(--navy-d)}
+.btn.green{background:var(--green);box-shadow:0 4px 0 var(--green-d)}
+.btn.gold{background:var(--gold);box-shadow:0 4px 0 var(--gold-d)}
+.btn.ghost{background:#fff;color:var(--ink);border:2px solid var(--line);box-shadow:none;padding:6px 12px;font-size:.95rem}
+.btn:disabled{opacity:.45;cursor:default;transform:none}
+.row{display:flex;gap:10px;margin-top:14px}
+.row>*{flex:1}
+.or{margin:18px 0 0;color:var(--muted);display:flex;align-items:center;gap:10px}
+.or:before,.or:after{content:"";flex:1;height:2px;background:var(--line)}
+.msg{min-height:1.4em;margin-top:12px;color:var(--red);font-weight:700}
+.waiting .code{
+  font-size:2.6rem;font-weight:800;letter-spacing:8px;color:var(--navy);
+  background:#eaf0fa;border:3px dashed var(--navy);border-radius:18px;padding:6px 10px;margin:10px 0;
+}
+.waiting .link{font-size:.85rem;word-break:break-all;color:var(--muted);margin:8px 0}
+.dots:after{content:"";animation:dots 1.4s steps(4) infinite}
+@keyframes dots{0%{content:""}25%{content:"."}50%{content:".."}75%{content:"..."}}
+
+/* ---------- Game ---------- */
+#game{max-width:1220px;margin:0 auto;padding:10px 16px 24px}
+header{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+header .title{font-family:"Fraunces",serif;font-size:1.7rem;color:var(--navy);line-height:1}
+header .info{font-weight:700;color:var(--muted);font-size:.95rem}
+header .info b{color:var(--ink)}
+header .sp{flex:1}
+.turnChip{padding:4px 12px;border-radius:999px;font-weight:800;background:#eceff5;color:var(--muted)}
+.turnChip.me{background:var(--green);color:#fff;animation:pulse 1.6s ease-in-out infinite}
+@keyframes pulse{50%{box-shadow:0 0 0 5px rgba(47,138,91,.2)}}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:16px;align-items:start}
+.panel{background:var(--panel);border:2px solid var(--line);border-radius:var(--radius);padding:12px 14px;box-shadow:0 6px 18px rgba(29,63,122,.06)}
+.panel+.panel{margin-top:12px}
+.ptitle{display:flex;align-items:center;gap:8px;font-weight:800;font-size:1.05rem;margin-bottom:8px;flex-wrap:wrap}
+.ptitle .sub{font-weight:600;color:var(--muted);font-size:.9rem}
+.ptitle .sp{flex:1}
+.small{font-size:.85rem;color:var(--muted);font-weight:600}
+.lastMove{background:#eef3fb;border:2px solid #cfdcf2;border-radius:12px;padding:6px 10px;font-weight:700;margin-bottom:8px}
+.roundSum{background:#fbf4e4;border:2px solid #efdcb2;border-radius:12px;padding:6px 10px;font-weight:700;margin-bottom:8px;font-size:.92rem}
+.hint{color:var(--muted);font-weight:700;min-height:1.4em;margin-top:8px}
+
+/* tiles */
+.tile{
+  width:var(--t);height:var(--t);border-radius:18%;position:relative;display:inline-block;flex:none;
+  background:var(--tc);box-shadow:inset 0 -3px 0 rgba(0,0,0,.2),inset 0 2px 0 rgba(255,255,255,.35),0 1px 2px rgba(0,0,0,.15);
+}
+.tile::after{content:"";position:absolute;inset:24%;background:var(--tm)}
+.c0{--tc:#2f6fd6;--tm:rgba(255,255,255,.85)}
+.c0::after{clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%)}
+.c1{--tc:#f2c134;--tm:transparent}
+.c1::after{border-radius:50%;border:max(2px,calc(var(--t)*.09)) solid #c24a2c;background:none}
+.c2{--tc:#d6463a;--tm:#ffe2a6}
+.c2::after{clip-path:polygon(50% 0,62% 38%,100% 50%,62% 62%,50% 100%,38% 62%,0 50%,38% 38%)}
+.c3{--tc:#262a38;--tm:#46c1c6}
+.c3::after{inset:20%;background:radial-gradient(circle,var(--tm) 0 22%,transparent 24%) 0 0/50% 50%}
+.c4{--tc:#dcf0f3;--tm:#2f7fbf}
+.c4::after{clip-path:polygon(40% 0,60% 0,60% 40%,100% 40%,100% 60%,60% 60%,60% 100%,40% 100%,40% 60%,0 60%,0 40%,40% 40%)}
+.tile.fp{--tc:#fff6de;display:inline-grid;place-items:center;font-weight:800;color:var(--navy);font-size:calc(var(--t)*.55);line-height:1;border:2px solid var(--gold)}
+.tile.fp::after{display:none}
+.tile.ph{opacity:.2;filter:saturate(.6);box-shadow:none}
+.tile.gh{opacity:.5;outline:2px dashed var(--ink);outline-offset:-2px}
+.tile.new{animation:pop .5s ease-out}
+@keyframes pop{0%{transform:scale(.3);opacity:0}70%{transform:scale(1.15)}100%{transform:scale(1);opacity:1}}
+.slot{width:var(--t);height:var(--t);border-radius:18%;background:var(--slot);box-shadow:inset 0 0 0 1px var(--slot-d);flex:none;display:inline-grid;place-items:center}
+.slot>.tile{margin:0}
+
+/* market */
+.market{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.fac{
+  width:calc(var(--t)*2 + var(--tg) + 30px);height:calc(var(--t)*2 + var(--tg) + 30px);border-radius:50%;
+  background:radial-gradient(circle at 35% 30%,#fff 0,#f6efe2 55%,#e7dcc6 100%);border:3px solid var(--wood-d);
+  display:grid;grid-template-columns:repeat(2,var(--t));grid-auto-rows:var(--t);gap:var(--tg);place-content:center;
+  box-shadow:0 4px 10px rgba(80,60,20,.15);
+}
+.fac.empty{opacity:.45}
+.center{
+  flex:1;min-width:200px;min-height:calc(var(--t)*2 + 30px);border-radius:22px;border:3px dashed var(--wood-d);background:#faf6ee;
+  display:flex;flex-wrap:wrap;gap:var(--tg);align-content:center;padding:10px;position:relative;
+}
+.center .lbl{position:absolute;top:-11px;left:14px;background:var(--panel);padding:0 6px;font-size:.8rem;font-weight:800;color:var(--muted)}
+.center .gap{width:8px}
+.pick{cursor:pointer;transition:transform .1s}
+.pick:hover{transform:translateY(-3px)}
+.tile.sel{transform:translateY(-4px);box-shadow:0 0 0 3px var(--green),0 6px 10px rgba(0,0,0,.25)}
+.tile.dim{opacity:.4}
+
+/* boards */
+.boards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:12px}
+.boards .panel+.panel{margin-top:0}
+.panel.active{border-color:var(--green);box-shadow:0 0 0 3px rgba(47,138,91,.15)}
+.score{font-weight:800;color:#fff;background:var(--navy);border-radius:10px;padding:0 10px;font-size:1.1rem}
+.fpBadge{font-size:.8rem;font-weight:800;color:var(--gold-d);background:#fbf0d8;border-radius:999px;padding:1px 8px}
+.pb{display:grid;grid-template-columns:auto auto;gap:3px 8px;justify-content:start}
+.line{display:flex;justify-content:flex-end;gap:var(--tg);padding:2px;border-radius:9px;justify-self:end}
+.line.ok{background:rgba(47,138,91,.14);box-shadow:inset 0 0 0 2px var(--green);cursor:pointer}
+.line.ok.hov{background:rgba(47,138,91,.3)}
+.line.no{opacity:.45}
+.wrow{display:flex;gap:var(--tg);padding:2px;background:#f4efe4;border-radius:0}
+.wrow.first{border-radius:9px 9px 0 0}.wrow.last{border-radius:0 0 9px 9px}
+.floor{grid-column:1/-1;display:flex;gap:var(--tg);align-items:flex-end;padding:4px 2px 2px;border-radius:9px;margin-top:6px;flex-wrap:wrap}
+.floor.ok{background:rgba(200,69,58,.1);box-shadow:inset 0 0 0 2px var(--red);cursor:pointer}
+.floor.ok.hov{background:rgba(200,69,58,.22)}
+.fs{display:flex;flex-direction:column;align-items:center;gap:1px}
+.fs small{font-size:.72rem;font-weight:800;color:var(--red);line-height:1}
+.floor .fl{font-size:.8rem;font-weight:800;color:var(--muted);align-self:center;margin-left:4px}
+
+/* scores */
+.stbl{width:100%;border-collapse:collapse;font-size:.92rem}
+.stbl th,.stbl td{padding:3px 4px;text-align:center;border-bottom:1px dashed var(--line)}
+.stbl th:first-child,.stbl td:first-child{text-align:left}
+.stbl tr.tot td{font-weight:800;border-bottom:0;font-size:1rem}
+.neg{color:var(--red);font-weight:800}
+.pos{color:var(--green);font-weight:800}
+
+.log{max-height:240px;overflow:auto;font-size:.92rem;display:flex;flex-direction:column;gap:3px}
+.log div{padding:2px 0;border-bottom:1px dashed var(--line)}
+.log div.sys{color:var(--navy);font-weight:800}
+
+/* overlay */
+.overlay{position:fixed;inset:0;background:rgba(31,42,68,.45);display:grid;place-items:center;padding:16px;z-index:50}
+.modal{background:var(--panel);border-radius:24px;padding:22px 20px;max-width:560px;width:100%;border:3px solid var(--line);box-shadow:0 20px 50px rgba(0,0,0,.25);max-height:92vh;overflow:auto}
+.modal h2{margin:0 0 6px;font-family:"Fraunces",serif;font-weight:700;font-size:1.8rem;color:var(--navy);text-align:center}
+.modal table{width:100%;border-collapse:collapse;margin:10px 0}
+.modal th,.modal td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:center}
+.modal th:first-child,.modal td:first-child{text-align:left}
+.modal tr.total td{font-weight:800;font-size:1.1rem}
+.modal .rules{font-size:.95rem;line-height:1.45}
+.modal .rules h3{margin:12px 0 4px;color:var(--navy)}
+.modal .rules ul{margin:4px 0;padding-left:20px}
+.modal .rules .tile{--t:20px;vertical-align:middle}
+.toast{
+  position:fixed;left:50%;bottom:20px;transform:translate(-50%,40px);opacity:0;background:var(--ink);color:#fff;
+  padding:10px 16px;border-radius:12px;font-weight:700;transition:.25s;z-index:60;max-width:calc(100vw - 32px);text-align:center;pointer-events:none;
+}
+.toast.show{transform:translate(-50%,0);opacity:1}
+
+@media (max-width:1100px){ .boards{grid-template-columns:1fr} }
+@media (max-width:900px){ .layout{grid-template-columns:1fr} .boards{grid-template-columns:repeat(2,minmax(0,1fr))} :root{--t:28px} }
+@media (max-width:720px){ .boards{grid-template-columns:1fr} :root{--t:min(34px,calc((100vw - 32px - 32px - 20px - 30px)/10))} }
+@media (max-width:600px){
+  #game{padding:8px 16px 20px}
+  .panel{padding:10px}
+  header .title{font-size:1.4rem}
+  :root{--tg:2px}
+  .market{gap:8px}
+  .fac{width:calc(var(--t)*2 + var(--tg) + 18px);height:calc(var(--t)*2 + var(--tg) + 18px)}
+}
+</style>
+</head>
+<body>
+
+<!-- ============ LOBBY ============ -->
+<section id="lobby">
+  <div class="lobby-card">
+    <div id="lobbyMain">
+      <div class="logo"><span class="tile c0"></span><span class="tile c1"></span><span class="tile c2"></span><span class="tile c3"></span><span class="tile c4"></span></div>
+      <h1>Azul</h1>
+      <p class="tag">Lát gạch men cung điện Bồ Đào Nha · 2 người</p>
+      <label for="nameInput">Tên của bạn</label>
+      <input id="nameInput" maxlength="16" placeholder="VD: Hoàng" autocomplete="off">
+      <div class="row"><button class="btn" id="createBtn">Tạo phòng</button></div>
+      <div class="or">hoặc vào phòng của bạn bè</div>
+      <label for="codeInput">Mã phòng</label>
+      <input id="codeInput" maxlength="5" placeholder="ABCDE" autocomplete="off">
+      <div class="row"><button class="btn green" id="joinBtn">Vào phòng</button></div>
+      <div class="or">hoặc</div>
+      <div class="row"><button class="btn gold" id="botBtn">Chơi với máy</button></div>
+      <div class="row"><button class="btn ghost" id="rulesBtn0">Xem luật chơi</button></div>
+      <div class="msg" id="lobbyMsg"></div>
+    </div>
+    <div id="lobbyWait" class="waiting hidden">
+      <div class="logo"><span class="tile c0"></span><span class="tile c2"></span><span class="tile c4"></span></div>
+      <h2 style="margin:6px 0 0">Phòng đã tạo!</h2>
+      <p class="tag">Gửi mã này cho bạn bè</p>
+      <div class="code" id="waitCode">-----</div>
+      <div class="link" id="waitLink"></div>
+      <div class="row"><button class="btn green" id="copyBtn">Sao chép link</button></div>
+      <p class="tag" style="margin-top:16px">Đang chờ người chơi thứ hai<span class="dots"></span></p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ GAME ============ -->
+<section id="game" class="hidden">
+  <header>
+    <span class="title">Azul</span>
+    <span class="info" id="roomInfo"></span>
+    <span class="info">Vòng <b id="roundNo">1</b></span>
+    <span class="turnChip" id="turnChip"></span>
+    <span class="sp"></span>
+    <button class="btn ghost" id="rulesBtn">Luật</button>
+  </header>
+  <div class="layout">
+    <main>
+      <div class="panel">
+        <div class="ptitle">🏭 Xưởng gạch <span class="sub" id="bagInfo"></span></div>
+        <div id="roundSum"></div>
+        <div id="lastMove"></div>
+        <div class="market" id="market"></div>
+        <div class="hint" id="hint"></div>
+      </div>
+      <div class="boards">
+        <div class="panel" id="myPanel"></div>
+        <div class="panel" id="oppPanel"></div>
+      </div>
+    </main>
+    <aside>
+      <div class="panel">
+        <div class="ptitle">🏅 Điểm</div>
+        <div id="scoreBox"></div>
+      </div>
+      <div class="panel">
+        <div class="ptitle">📜 Nhật ký</div>
+        <div class="log" id="log"></div>
+      </div>
+    </aside>
+  </div>
+</section>
+
+<div id="overlay" class="overlay hidden"><div class="modal" id="modal"></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ================= RULES / ENGINE ================= */
+const NC=5;                                   // 5 màu, tường 5×5
+const CN=["xanh lam","vàng","đỏ","đen","ngọc"];
+const FACTORIES=5, PER_FAC=4, PER_COLOR=20;   // 2 người: 5 xưởng, mỗi xưởng 4 viên
+const FLOOR=[-1,-1,-2,-2,-2,-3,-3];
+const FLOOR_LINE=5;                            // chỉ số "hàng" nghĩa là đặt thẳng xuống sàn
+const wallCol=(r,c)=>(c+r)%NC;                 // cột của màu c ở hàng r
+const wallColor=(r,x)=>(x-r+NC)%NC;
+const sum = a => a.reduce((s,x)=>s+x,0);
+const range = n => Array.from({length:n},(_,i)=>i);
+
+function rnd(n){ const a=new Uint32Array(1); crypto.getRandomValues(a); return a[0]%n; }
+function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=rnd(i+1); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+
+function newBoard(){
+  return { lines:range(NC).map(()=>({c:null,n:0})), wall:range(NC).map(()=>Array(NC).fill(0)), floor:[], score:0 };
+}
+const cloneBoard = b => JSON.parse(JSON.stringify(b));
+
+// Điểm khi gắn 1 viên vào tường: đếm chuỗi ngang và dọc liền kề.
+function placeScore(wall,r,x){
+  let h=1,v=1;
+  for(let i=x-1;i>=0&&wall[r][i];i--) h++;
+  for(let i=x+1;i<NC&&wall[r][i];i++) h++;
+  for(let j=r-1;j>=0&&wall[j][x];j--) v++;
+  for(let j=r+1;j<NC&&wall[j][x];j++) v++;
+  return h===1&&v===1 ? 1 : (h>1?h:0)+(v>1?v:0);
+}
+const floorPen = len => sum(FLOOR.slice(0,Math.min(len,FLOOR.length)));
+function bonuses(wall){
+  const rows=wall.filter(r=>r.every(Boolean)).length;
+  const cols=range(NC).filter(x=>wall.every(r=>r[x])).length;
+  const colors=range(NC).filter(c=>range(NC).every(r=>wall[r][wallCol(r,c)])).length;
+  return {rows, cols, colors, pts:rows*2+cols*7+colors*10};
+}
+function lineErr(b,r,c){
+  if(!Number.isInteger(r)||r<0||r>=NC) return "Hàng không hợp lệ.";
+  const L=b.lines[r];
+  if(L.n>=r+1) return "Hàng này đã đầy.";
+  if(L.n&&L.c!==c) return "Hàng này đang chứa màu khác.";
+  if(b.wall[r][wallCol(r,c)]) return "Tường ở hàng này đã có màu đó.";
+  return null;
+}
+function addFloor(st,b,x){
+  if(b.floor.length<FLOOR.length) b.floor.push(x);
+  else if(x!=="F") st.lid.push(x);             // sàn đầy: gạch thừa bỏ vào hộp
+}
+// Lát tường cuối vòng (trên xuống dưới), trừ điểm sàn. lid=null để chỉ tính thử.
+function tileBoard(b,lid){
+  const gains=[], before=b.score;
+  for(let r=0;r<NC;r++){
+    const L=b.lines[r];
+    if(L.n!==r+1) continue;
+    const x=wallCol(r,L.c);
+    b.wall[r][x]=1;
+    const p=placeScore(b.wall,r,x);
+    b.score+=p; gains.push({r,x,c:L.c,pts:p});
+    if(lid) for(let i=0;i<r;i++) lid.push(L.c);
+    b.lines[r]={c:null,n:0};
+  }
+  const gained=b.score-before;
+  b.score=Math.max(0,b.score+floorPen(b.floor.length));
+  const pen=b.score-before-gained;
+  if(lid) for(const t of b.floor) if(t!=="F") lid.push(t);
+  b.floor=[];
+  return {gains, gained, pen};
+}
+
+function newMatch(names, bot){
+  const st={names, bot:!!bot, log:[], moveNo:0};
+  resetMatch(st); return st;
+}
+function resetMatch(st){
+  st.bag=shuffle(range(NC*PER_COLOR).map(i=>i%NC)); st.lid=[];
+  st.boards=[newBoard(),newBoard()];
+  st.round=0; st.first=rnd(2); st.result=null; st.last=null; st.roundSum=null; st.lastTake=null;
+  st.log.push({t:`${st.names[st.first]} được đi trước.`});
+  startRound(st);
+}
+function drawTile(st){
+  if(!st.bag.length&&st.lid.length){ st.bag=shuffle(st.lid); st.lid=[]; }
+  return st.bag.length?st.bag.pop():null;
+}
+function startRound(st){
+  st.round++;
+  st.factories=range(FACTORIES).map(()=>{ const f=[]; for(let k=0;k<PER_FAC;k++){ const t=drawTile(st); if(t!==null) f.push(t); } return f; });
+  st.center=[]; st.fp=true; st.nextFirst=null;
+  st.turn=st.first; st.phase="play";
+  st.log.push({sys:1,t:`— Vòng ${st.round} —`});
+  st.moveNo++;
+  if(st.factories.every(f=>!f.length)) endGame(st);   // hết sạch gạch (rất hiếm)
+}
+function endRound(st){
+  const res=st.boards.map(b=>tileBoard(b,st.lid));
+  st.roundSum={round:st.round, res};
+  res.forEach((r,p)=>st.log.push({t:`${st.names[p]}: lát ${r.gains.length} viên +${r.gained}${r.pen?`, sàn ${r.pen}`:""} → ${st.boards[p].score} điểm.`}));
+  if(st.nextFirst!==null) st.first=st.nextFirst;
+  if(st.boards.some(b=>b.wall.some(r=>r.every(Boolean)))) endGame(st);
+  else startRound(st);
+}
+function endGame(st){
+  const bon=st.boards.map(b=>bonuses(b.wall));
+  const totals=st.boards.map((b,p)=>b.score+bon[p].pts);
+  st.boards.forEach((b,p)=>b.score=totals[p]);
+  let w=totals[0]>totals[1]?0:totals[1]>totals[0]?1:null, tb=false;
+  if(w===null&&bon[0].rows!==bon[1].rows){ w=bon[0].rows>bon[1].rows?0:1; tb=true; }
+  st.result={bon, totals, winner:w, tieBreak:tb};
+  st.phase="end";
+  st.log.push({sys:1,t: w===null?"Hoà! 🤝":`🏆 ${st.names[w]} thắng với ${totals[w]} điểm!`});
+  st.moveNo++;
+}
+
+function applyAction(st, p, a){
+  if(!a||typeof a!=="object") return "Hành động không hợp lệ.";
+  if(a.k==="rematch"){
+    if(st.phase!=="end") return "Trận chưa kết thúc.";
+    st.log.push({sys:1,t:"— Trận mới —"}); resetMatch(st); return null;
+  }
+  if(a.k==="take"){
+    if(st.phase!=="play") return "Trận đã kết thúc.";
+    if(st.turn!==p) return "Chưa tới lượt bạn.";
+    const {src,c,line}=a;
+    if(!Number.isInteger(c)||c<0||c>=NC) return "Màu không hợp lệ.";
+    const tiles = src===-1 ? st.center : Number.isInteger(src) ? st.factories[src] : null;
+    if(!tiles) return "Nguồn không hợp lệ.";
+    if(!tiles.includes(c)) return "Ở đó không có màu này.";
+    const b=st.boards[p];
+    if(line!==FLOOR_LINE){ const e=lineErr(b,line,c); if(e) return e; }
+    const n=tiles.filter(t=>t===c).length;
+    let tookFP=false;
+    if(src===-1){
+      st.center=st.center.filter(t=>t!==c);
+      if(st.fp){ st.fp=false; st.nextFirst=p; tookFP=true; addFloor(st,b,"F"); }
+    } else {
+      st.center.push(...tiles.filter(t=>t!==c));
+      st.factories[src]=[];
+    }
+    let over=n;
+    if(line!==FLOOR_LINE){ const L=b.lines[line], put=Math.min(n,line+1-L.n); L.c=c; L.n+=put; over=n-put; }
+    for(let i=0;i<over;i++) addFloor(st,b,c);
+    const txt=`${st.names[p]} lấy ${n} ${CN[c]} từ ${src===-1?"giữa bàn":`xưởng ${src+1}`}`
+      +(line===FLOOR_LINE?" và bỏ thẳng xuống sàn":` vào hàng ${line+1}`+(over?`, ${over} viên rơi xuống sàn`:""))
+      +(tookFP?" (nhận thẻ đi trước, −1)":"")+".";
+    st.last={p,text:txt}; st.lastTake={p,c,line};
+    st.log.push({t:txt});
+    st.moveNo++;
+    if(st.factories.every(f=>!f.length)&&!st.center.length) endRound(st);
+    else st.turn=1-p;
+    return null;
+  }
+  return "Hành động không hợp lệ.";
+}
+
+function viewFor(st,p){
+  return {
+    me:p, names:st.names, bot:st.bot, round:st.round, phase:st.phase, turn:st.turn,
+    factories:st.factories, center:st.center, fp:st.fp, boards:st.boards, nextFirst:st.nextFirst, first:st.first,
+    bag:st.bag.length, lid:st.lid.length, log:st.log.slice(-50), last:st.last, lastTake:st.lastTake,
+    roundSum:st.roundSum, moveNo:st.moveNo, result:st.result
+  };
+}
+
+/* ================= BOT ================= */
+function listMoves(factories,center){
+  const ms=[];
+  factories.forEach((f,i)=>{ for(const c of new Set(f)) ms.push({src:i,c,n:f.filter(t=>t===c).length}); });
+  for(const c of new Set(center)) ms.push({src:-1,c,n:center.filter(t=>t===c).length});
+  return ms;
+}
+// Ước lượng giá trị ngay lập tức của việc đặt n viên màu c vào hàng line.
+function evalPlace(b,n,c,line,takeFP,supply){
+  let v=0, fl=b.floor.length;
+  const penAt=k=>k<FLOOR.length?FLOOR[k]:0;
+  if(takeFP){ v+=penAt(fl)+0.8; fl++; }
+  let over=n;
+  if(line!==FLOOR_LINE){
+    const L=b.lines[line], cap=line+1, put=Math.min(n,cap-L.n), m=L.n+put, x=wallCol(line,c);
+    over=n-put;
+    const s=placeScore(b.wall,line,x);
+    const prog=b.wall[line].filter(Boolean).length*0.25
+      +b.wall.filter(r=>r[x]).length*0.6
+      +range(NC).filter(r=>b.wall[r][wallCol(r,c)]).length*0.6;
+    if(m===cap) v+=s+prog+0.3;
+    else {
+      const need=cap-m, chance=supply>=need?0.7:0.3;
+      v+=(s+prog)*chance*(m/cap)+0.1*put-(L.n===0?0.15*need:0);
+    }
+  }
+  for(let i=0;i<over;i++){ v+=penAt(fl); fl++; }
+  return v;
+}
+function botMove(st,p){
+  const o=1-p, b=st.boards[p]; let best=null;
+  for(const m of listMoves(st.factories,st.center)){
+    const fac=st.factories.map((f,i)=>i===m.src?[]:f);
+    const cen=m.src===-1 ? st.center.filter(t=>t!==m.c) : st.center.concat(st.factories[m.src].filter(t=>t!==m.c));
+    const supply=sum(fac.map(f=>f.filter(t=>t===m.c).length))+cen.filter(t=>t===m.c).length;
+    const takeFP=m.src===-1&&st.fp, fpLeft=st.fp&&!takeFP;
+    // nước đáp tốt nhất của đối thủ sau nước này
+    let ob=-Infinity;
+    for(const om of listMoves(fac,cen)) for(let ol=0;ol<=FLOOR_LINE;ol++){
+      if(ol!==FLOOR_LINE&&lineErr(st.boards[o],ol,om.c)) continue;
+      ob=Math.max(ob,evalPlace(st.boards[o],om.n,om.c,ol,om.src===-1&&fpLeft,9));
+    }
+    for(let line=0;line<=FLOOR_LINE;line++){
+      if(line!==FLOOR_LINE&&lineErr(b,line,m.c)) continue;
+      let v=evalPlace(b,m.n,m.c,line,takeFP,supply);
+      if(ob>-Infinity) v-=0.45*ob;
+      v+=Math.random()*0.05;
+      if(!best||v>best.v) best={v,src:m.src,c:m.c,line};
+    }
+  }
+  return best;
+}
+let botTimer=null, botKey="";
+function maybeBot(){
+  if(!state||!state.bot) return;
+  const st=state, key=`${st.moveNo}|${st.phase}`;
+  if(key===botKey) return;
+  botKey=key; clearTimeout(botTimer);
+  if(st.phase==="play"&&st.turn===1){
+    const fresh=st.factories.every(f=>f.length)&&!st.center.length;   // vòng vừa bắt đầu → chờ lâu hơn
+    botTimer=setTimeout(()=>{
+      if(state.phase!=="play"||state.turn!==1) return;
+      const m=botMove(state,1), err=applyAction(state,1,{k:"take",src:m.src,c:m.c,line:m.line});
+      if(err) console.warn("bot:",err);
+      broadcast();
+    }, (fresh&&st.round>1?2200:900)+Math.random()*700);
+  }
+}
+
+/* ================= NETWORK ================= */
+const PREFIX="azul-vh-";
+let peer=null, conn=null, guestConn=null, isHost=false, myName="", guestName="", roomCode="", state=null, view=null, joinTimer=null;
+
+const $ = id => document.getElementById(id);
+function toast(t){ const el=$("toast"); el.textContent=t; el.classList.add("show"); clearTimeout(el._t); el._t=setTimeout(()=>el.classList.remove("show"),2600); }
+function lobbyMsg(t){ $("lobbyMsg").textContent=t||""; }
+function genCode(){ const A="ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; let s=""; const r=new Uint32Array(5); crypto.getRandomValues(r); for(const x of r) s+=A[x%A.length]; return s; }
+function roomLink(){ return location.origin+location.pathname+"?room="+roomCode; }
+function getName(){
+  const n=$("nameInput").value.trim();
+  if(!n){ lobbyMsg("Nhập tên trước đã nhé 🧩"); $("nameInput").focus(); return null; }
+  try{ localStorage.setItem("azul-name",n); }catch(e){}
+  return n;
+}
+function lockLobby(b){ $("createBtn").disabled=b; $("joinBtn").disabled=b; $("botBtn").disabled=b; }
+
+function playBot(){
+  const n=getName(); if(!n) return;
+  myName=n; isHost=true; roomCode="";
+  state=newMatch([myName,"Thợ lát máy"], true);
+  startGameUI(); broadcast();
+}
+function createRoom(){
+  const n=getName(); if(!n) return;
+  if(typeof Peer==="undefined"){ lobbyMsg("Không tải được thư viện kết nối, kiểm tra mạng."); return; }
+  myName=n; isHost=true; lockLobby(true); lobbyMsg("");
+  roomCode=genCode();
+  peer=new Peer(PREFIX+roomCode);
+  peer.on("open",()=>{
+    $("lobbyMain").classList.add("hidden"); $("lobbyWait").classList.remove("hidden");
+    $("waitCode").textContent=roomCode; $("waitLink").textContent=roomLink();
+    history.replaceState(null,"","?room="+roomCode+"&host=1");
+  });
+  peer.on("connection", onGuestConn);
+  peer.on("disconnected",()=>{ if(!peer.destroyed) peer.reconnect(); });
+  peer.on("error",e=>{
+    if(e.type==="unavailable-id"){ peer.destroy(); isHost=false; createRoom(); return; }
+    if(e.type==="peer-unavailable") return;
+    console.warn(e); toast("Lỗi kết nối: "+e.type); lockLobby(false);
+  });
+}
+function onGuestConn(c){
+  c.on("data", msg=>{
+    if(!msg||typeof msg!=="object") return;
+    if(msg.t==="hello"){
+      if(guestConn && guestConn!==c && guestConn.open){ c.send({t:"full"}); setTimeout(()=>c.close(),300); return; }
+      guestConn=c; guestName=String(msg.name||"Khách").slice(0,16);
+      if(!state){ state=newMatch([myName,guestName]); startGameUI(); }
+      else { state.names[1]=guestName; state.log.push({t:`${guestName} đã vào lại phòng.`}); }
+      broadcast();
+    } else if(msg.t==="act" && c===guestConn){
+      const err=applyAction(state,1,msg.a||{});
+      if(err) c.send({t:"err",msg:err});
+      broadcast();
+    }
+  });
+  c.on("close",()=>{ if(c===guestConn){ guestConn=null; if(state){ state.log.push({t:`${guestName} mất kết nối…`}); broadcast(); } } });
+}
+function broadcast(){
+  onView(viewFor(state,0));
+  if(guestConn && guestConn.open) guestConn.send({t:"state", view:viewFor(state,1)});
+  maybeBot();
+}
+function joinRoom(){
+  const n=getName(); if(!n) return;
+  const code=$("codeInput").value.trim().toUpperCase();
+  if(code.length!==5){ lobbyMsg("Mã phòng gồm 5 ký tự."); return; }
+  if(typeof Peer==="undefined"){ lobbyMsg("Không tải được thư viện kết nối, kiểm tra mạng."); return; }
+  myName=n; roomCode=code; isHost=false; lockLobby(true); lobbyMsg("Đang kết nối…");
+  $("lobbyMsg").style.color="var(--muted)";
+  if(peer) peer.destroy();
+  peer=new Peer();
+  peer.on("open",()=>connectToHost());
+  peer.on("error",e=>{
+    $("lobbyMsg").style.color="";
+    if(e.type==="peer-unavailable"){ clearTimeout(joinTimer); if(!view){ lobbyMsg("Không tìm thấy phòng "+roomCode+". Kiểm tra lại mã."); lockLobby(false); } else showDisconnected(); }
+    else { console.warn(e); lobbyMsg("Lỗi kết nối: "+e.type); lockLobby(false); }
+  });
+  peer.on("disconnected",()=>{ if(!peer.destroyed) peer.reconnect(); });
+}
+function connectToHost(){
+  conn=peer.connect(PREFIX+roomCode,{reliable:true});
+  clearTimeout(joinTimer);
+  joinTimer=setTimeout(()=>{ if(!view){ lobbyMsg("Kết nối quá lâu. Chủ phòng còn mở tab không?"); lockLobby(false); } },15000);
+  conn.on("open",()=>{ conn.send({t:"hello",name:myName}); });
+  conn.on("data",msg=>{
+    if(!msg) return;
+    if(msg.t==="state"){ clearTimeout(joinTimer); if($("game").classList.contains("hidden")) startGameUI(); if(overlayId==="dc") closeOverlay(); onView(msg.view); }
+    else if(msg.t==="err") toast(msg.msg);
+    else if(msg.t==="full"){ lobbyMsg("Phòng đã đủ 2 người."); lockLobby(false); }
+  });
+  conn.on("close",()=>{ if(view) showDisconnected(); });
+}
+function showDisconnected(){
+  openOverlay(`<h2>Mất kết nối</h2><p class="tag" style="text-align:center">Không liên lạc được với chủ phòng.</p>
+    <div class="row"><button class="btn green" id="rejoinBtn">Kết nối lại</button></div>`, "dc");
+  $("rejoinBtn").onclick=()=>{ $("rejoinBtn").disabled=true; $("rejoinBtn").textContent="Đang thử…"; connectToHost(); };
+}
+function sendAction(a){
+  if(isHost){ const err=applyAction(state,0,a); if(err) toast(err); broadcast(); }
+  else if(conn && conn.open) conn.send({t:"act",a});
+  else toast("Chưa kết nối với chủ phòng.");
+}
+
+/* ================= UI ================= */
+let overlayId=null;
+function openOverlay(html,id){ $("modal").innerHTML=html; $("overlay").classList.remove("hidden"); overlayId=id; }
+function closeOverlay(){ $("overlay").classList.add("hidden"); overlayId=null; }
+$("overlay").addEventListener("click",e=>{ if(e.target.id==="overlay" && overlayId==="rules") closeOverlay(); });
+
+function startGameUI(){
+  $("lobby").classList.add("hidden"); $("game").classList.remove("hidden");
+  $("roomInfo").innerHTML = roomCode ? `Phòng <b>${roomCode}</b>` : "Chơi với máy";
+  if(!isHost && roomCode) history.replaceState(null,"","?room="+roomCode);
+}
+const esc = s => String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const tileHTML = (c,cls="",extra="") => c==="F"
+  ? `<span class="tile fp ${cls}" title="Thẻ đi trước (−1)" ${extra}>1</span>`
+  : `<span class="tile c${c} ${cls}" title="${CN[c]}" ${extra}></span>`;
+
+// Trạng thái cục bộ
+let sel=null, selKey="", hoverLine=null, freshWall=new Set();
+
+function myTurn(){ return view&&view.phase==="play"&&view.turn===view.me; }
+function onView(v){
+  const prev=view; view=v;
+  if(`${v.moveNo}`!==selKey){ selKey=`${v.moveNo}`; sel=null; hoverLine=null; }
+  freshWall=new Set();
+  if(prev) v.boards.forEach((b,p)=>b.wall.forEach((row,r)=>row.forEach((w,x)=>{ if(w&&!prev.boards[p].wall[r][x]) freshWall.add(`${p},${r},${x}`); })));
+  render();
+  freshWall=new Set();
+  if(v.phase==="end") showEnd(); else if(overlayId==="end") closeOverlay();
+  document.title = myTurn() ? "● Lượt bạn · Azul" : "Azul";
+}
+
+function render(){
+  const v=view, me=v.me, o=1-me;
+  $("roundNo").textContent=v.round;
+  $("bagInfo").textContent=`· túi ${v.bag} viên · hộp ${v.lid} viên`;
+  const tc=$("turnChip");
+  tc.textContent = v.phase==="end" ? "Kết thúc" : myTurn() ? "Lượt của bạn" : `Lượt của ${v.names[o]}`;
+  tc.classList.toggle("me",myTurn());
+  $("lastMove").innerHTML = v.last ? `<div class="lastMove">${esc(v.last.text)}</div>` : "";
+  const rs=v.roundSum;
+  $("roundSum").innerHTML = rs
+    ? `<div class="roundSum">Hết vòng ${rs.round}: ${[me,o].map(p=>`${esc(v.names[p])} <span class="pos">+${rs.res[p].gained}</span>${rs.res[p].pen?` <span class="neg">${rs.res[p].pen}</span>`:""}`).join(" · ")}</div>` : "";
+  renderMarket();
+  renderBoard(me); renderBoard(o);
+  renderScores();
+  $("log").innerHTML = v.log.slice().reverse().map(l=>`<div class="${l.sys?"sys":""}">${esc(l.t)}</div>`).join("");
+}
+
+function renderMarket(){
+  const v=view, my=myTurn(), cls=(src,c)=>{
+    let s=my?"pick":"";
+    if(sel&&sel.src===src) s+= sel.c===c?" sel":" dim";
+    return s;
+  };
+  const facs=v.factories.map((f,i)=>`<div class="fac ${f.length?"":"empty"}" title="Xưởng ${i+1}">${f.map(c=>tileHTML(c,cls(i,c),`data-src="${i}" data-c="${c}"`)).join("")}</div>`).join("");
+  const cen=v.center.slice().sort((a,b)=>a-b);
+  let ch="", prevC=null;
+  if(v.fp) ch+=tileHTML("F");
+  for(const c of cen){ if(prevC!==null&&c!==prevC) ch+=`<span class="gap"></span>`; ch+=tileHTML(c,cls(-1,c),`data-src="-1" data-c="${c}"`); prevC=c; }
+  $("market").innerHTML=facs+`<div class="center"><span class="lbl">Giữa bàn</span>${ch||`<span class="small">Trống</span>`}</div>`;
+  let hint="";
+  if(v.phase==="end") hint="Trận đã kết thúc.";
+  else if(!my) hint=`${esc(v.names[1-v.me])} đang chọn gạch<span class="dots"></span>`;
+  else if(!sel) hint="Chọn một viên ở xưởng hoặc giữa bàn: bạn sẽ lấy hết các viên cùng màu ở đó.";
+  else hint="Chọn hàng trên bảng của bạn (phím 1–5) hoặc bỏ xuống sàn (phím 0). Esc để chọn lại.";
+  $("hint").innerHTML=hint;
+}
+
+function selCount(){
+  if(!sel) return 0;
+  const src=sel.src===-1?view.center:view.factories[sel.src];
+  return src.filter(t=>t===sel.c).length;
+}
+function renderBoard(p){
+  const v=view, b=v.boards[p], mine=p===v.me, act=mine&&myTurn()&&sel;
+  const panel=$(mine?"myPanel":"oppPanel");
+  panel.classList.toggle("active", v.phase==="play"&&v.turn===p);
+  // xem trước: viên nào sẽ vào hàng, viên nào rơi xuống sàn
+  let prevLine=null, put=0, fallen=[];
+  if(act&&hoverLine!==null&&(hoverLine===FLOOR_LINE||!lineErr(b,hoverLine,sel.c))){
+    const n=selCount();
+    prevLine=hoverLine;
+    if(hoverLine!==FLOOR_LINE) put=Math.min(n,hoverLine+1-b.lines[hoverLine].n);
+    if(sel.src===-1&&v.fp) fallen.push("F");
+    for(let i=0;i<n-put;i++) fallen.push(sel.c);
+  }
+  const holdsFP = v.phase==="play" && (v.fp ? v.first===p : v.nextFirst===p);
+  let h=`<div class="ptitle">${mine?"🧑 "+esc(v.names[p])+" (bạn)":"👤 "+esc(v.names[p])}
+    ${holdsFP?`<span class="fpBadge">${v.fp?"đi trước vòng này":"đi trước vòng sau"}</span>`:""}
+    <span class="sp"></span><span class="score">${b.score}</span></div><div class="pb">`;
+  for(let r=0;r<NC;r++){
+    const L=b.lines[r], ok=act&&!lineErr(b,r,sel.c);
+    let slots="";
+    for(let j=0;j<=r;j++){
+      const k=r-j;                         // 0 = ô sát tường
+      let t="";
+      if(k<L.n) t=tileHTML(L.c);
+      else if(prevLine===r&&k<L.n+put) t=tileHTML(sel.c,"gh");
+      slots+=`<span class="slot">${t}</span>`;
+    }
+    h+=`<div class="line ${act?(ok?"ok":"no"):""} ${act&&hoverLine===r?"hov":""}" ${mine?`data-line="${r}"`:""}>${slots}</div>`;
+    h+=`<div class="wrow ${r===0?"first":""} ${r===NC-1?"last":""}">${range(NC).map(x=>{
+      const c=wallColor(r,x);
+      return b.wall[r][x] ? tileHTML(c, freshWall.has(`${p},${r},${x}`)?"new":"") : tileHTML(c,"ph");
+    }).join("")}</div>`;
+  }
+  const fl=b.floor.concat(fallen);
+  h+=`<div class="floor ${act?"ok":""} ${act&&hoverLine===FLOOR_LINE?"hov":""}" ${mine?`data-line="${FLOOR_LINE}"`:""}>`
+    +FLOOR.map((pen,i)=>`<div class="fs"><small>${pen}</small><span class="slot">${i<fl.length?tileHTML(fl[i], i>=b.floor.length?"gh":""):""}</span></div>`).join("")
+    +(fl.length>FLOOR.length?`<span class="fl">+${fl.length-FLOOR.length} vào hộp</span>`:"")
+    +`</div></div>`;
+  panel.innerHTML=h;
+}
+
+function renderScores(){
+  const v=view, me=v.me, o=1-me, ps=[me,o];
+  const proj=ps.map(p=>{ const b=cloneBoard(v.boards[p]); const r=tileBoard(b,null); return {r,score:b.score,bon:bonuses(b.wall)}; });
+  const bonNow=ps.map(p=>bonuses(v.boards[p].wall));
+  const done=v.phase==="end";
+  $("scoreBox").innerHTML=`<table class="stbl">
+    <tr><th></th><th>Bạn</th><th>${esc(v.names[o])}</th></tr>
+    <tr><td>Điểm hiện tại</td>${ps.map(p=>`<td><b>${v.boards[p].score}</b></td>`).join("")}</tr>
+    ${done?"":`<tr><td>Sàn đang trừ</td>${ps.map(p=>{ const x=floorPen(v.boards[p].floor.length); return `<td class="${x?"neg":""}">${x}</td>`; }).join("")}</tr>
+    <tr><td>Nếu hết vòng ngay</td>${proj.map(x=>`<td>${x.score} <span class="small">(${x.r.gained+x.r.pen>=0?"+":""}${x.r.gained+x.r.pen})</span></td>`).join("")}</tr>`}
+    <tr><td>Hàng đủ ×2</td>${bonNow.map(x=>`<td>${x.rows}</td>`).join("")}</tr>
+    <tr><td>Cột đủ ×7</td>${bonNow.map(x=>`<td>${x.cols}</td>`).join("")}</tr>
+    <tr><td>Đủ 5 màu ×10</td>${bonNow.map(x=>`<td>${x.colors}</td>`).join("")}</tr>
+    ${done?"":`<tr class="tot"><td>Dự kiến nếu kết thúc</td>${proj.map(x=>`<td>${x.score+x.bon.pts}</td>`).join("")}</tr>`}
+    </table>
+    <div class="small" style="margin-top:6px">Trận kết thúc sau vòng mà có người lát kín một hàng ngang trên tường.</div>`;
+}
+
+/* ---- events ---- */
+function chooseLine(line){
+  if(!myTurn()||!sel) return;
+  if(line!==FLOOR_LINE){ const e=lineErr(view.boards[view.me],line,sel.c); if(e){ toast(e); return; } }
+  const a={k:"take",src:sel.src,c:sel.c,line};
+  sel=null; hoverLine=null;
+  sendAction(a);
+}
+document.addEventListener("click",e=>{
+  if(!view) return;
+  const t=e.target.closest("#market [data-src]"), ln=e.target.closest("#myPanel [data-line]");
+  if(t){
+    if(!myTurn()){ toast("Chưa tới lượt bạn."); return; }
+    const src=+t.dataset.src, c=+t.dataset.c;
+    sel = sel&&sel.src===src&&sel.c===c ? null : {src,c};
+    renderMarket(); renderBoard(view.me);
+  } else if(ln && sel){
+    chooseLine(+ln.dataset.line);
+  }
+});
+$("myPanel").addEventListener("mouseover",e=>{
+  if(!sel) return;
+  const ln=e.target.closest("[data-line]"), k=ln?+ln.dataset.line:null;
+  if(k!==hoverLine){ hoverLine=k; renderBoard(view.me); }
+});
+$("myPanel").addEventListener("mouseleave",()=>{ if(hoverLine!==null){ hoverLine=null; renderBoard(view.me); } });
+document.addEventListener("keydown",e=>{
+  if(!view||e.target.tagName==="INPUT") return;
+  if(e.key==="Escape"&&sel){ sel=null; hoverLine=null; render(); }
+  if(sel&&/^[0-5]$/.test(e.key)) chooseLine(e.key==="0"?FLOOR_LINE:+e.key-1);
+});
+
+function showEnd(){
+  const v=view, r=v.result; if(!r) return;
+  const me=v.me, o=1-me, ps=[me,o];
+  const title = r.winner===null ? "Hoà rồi! 🤝" : r.winner===me ? "🏆 Bạn thắng!" : `${esc(v.names[r.winner])} thắng`;
+  openOverlay(`
+    <h2>${title}</h2>
+    <p class="tag" style="text-align:center;margin:0">${r.tieBreak?"Bằng điểm — phân thắng thua bằng số hàng ngang hoàn chỉnh.":"Bức tường nào đẹp nhất cung điện?"}</p>
+    <table>
+      <tr><th></th>${ps.map(p=>`<th>${esc(v.names[p])}</th>`).join("")}</tr>
+      <tr><td>Điểm trong trận</td>${ps.map(p=>`<td>${r.totals[p]-r.bon[p].pts}</td>`).join("")}</tr>
+      <tr><td>Hàng ngang đủ (×2)</td>${ps.map(p=>`<td>${r.bon[p].rows} · <b>+${r.bon[p].rows*2}</b></td>`).join("")}</tr>
+      <tr><td>Cột dọc đủ (×7)</td>${ps.map(p=>`<td>${r.bon[p].cols} · <b>+${r.bon[p].cols*7}</b></td>`).join("")}</tr>
+      <tr><td>Đủ 5 viên một màu (×10)</td>${ps.map(p=>`<td>${r.bon[p].colors} · <b>+${r.bon[p].colors*10}</b></td>`).join("")}</tr>
+      <tr class="total"><td>Tổng</td>${ps.map(p=>`<td>${r.totals[p]}</td>`).join("")}</tr>
+    </table>
+    <div class="row">
+      <button class="btn green" id="againBtn">Chơi ván mới</button>
+      <button class="btn ghost" id="viewBoardBtn">Xem bàn</button>
+    </div>`, "end");
+  $("againBtn").onclick=()=>sendAction({k:"rematch"});
+  $("viewBoardBtn").onclick=closeOverlay;
+}
+
+function showRules(){
+  const sw=range(NC).map(c=>tileHTML(c)).join(" ");
+  openOverlay(`<h2>Luật chơi Azul</h2><div class="rules">
+    <p>Hai nghệ nhân thi nhau lát gạch men azulejo cho cung điện. Có 100 viên gạch, 5 màu: ${sw}.</p>
+    <h3>Mỗi vòng</h3>
+    <ul>
+      <li>5 xưởng, mỗi xưởng có 4 viên rút ngẫu nhiên từ túi. Giữa bàn có thẻ <b>đi trước</b> ${tileHTML("F")}.</li>
+      <li>Tới lượt, chọn <b>một màu</b> và lấy <b>tất cả</b> viên màu đó ở một chỗ:
+        <ul><li>ở một xưởng: các viên còn lại trong xưởng bị đẩy ra giữa bàn;</li>
+        <li>hoặc ở giữa bàn: ai lấy từ giữa bàn đầu tiên phải nhận luôn thẻ đi trước (đặt xuống sàn, −1), nhưng được đi trước vòng sau.</li></ul></li>
+      <li>Đặt gạch vào <b>một</b> hàng chờ bên trái (hàng 1 chứa 1 viên … hàng 5 chứa 5 viên). Mỗi hàng chỉ chứa một màu,
+        và không được chọn màu mà tường ở hàng đó đã có. Viên thừa rơi xuống <b>sàn</b>. Có thể bỏ thẳng cả nắm xuống sàn.</li>
+      <li>Vòng kết thúc khi xưởng và giữa bàn đều hết gạch.</li>
+    </ul>
+    <h3>Lát tường (cuối vòng)</h3>
+    <ul>
+      <li>Mỗi hàng chờ <b>đầy</b> chuyển 1 viên sang đúng ô cùng màu trên tường, phần còn lại bỏ vào hộp. Hàng chưa đầy giữ nguyên sang vòng sau.</li>
+      <li>Viên mới đứng riêng: <b>+1</b>. Nếu nối với viên khác: cộng số viên liền nhau theo hàng ngang (nếu ≥2) và theo cột dọc (nếu ≥2).</li>
+      <li>Sàn trừ điểm: −1, −1, −2, −2, −2, −3, −3 (điểm không xuống dưới 0).</li>
+    </ul>
+    <h3>Kết thúc</h3>
+    <ul>
+      <li>Trận kết thúc sau vòng mà có người lát kín một <b>hàng ngang</b>.</li>
+      <li>Thưởng: mỗi hàng ngang đủ +2, mỗi cột dọc đủ +7, mỗi màu đủ 5 viên +10.</li>
+      <li>Bằng điểm: ai nhiều hàng ngang hoàn chỉnh hơn thắng.</li>
+    </ul>
+    <h3>Cách bấm</h3>
+    <ul><li>Bấm một viên ở xưởng/giữa bàn, rồi bấm hàng trên bảng của bạn (hàng hợp lệ viền xanh). Rê chuột để xem trước. Phím 1–5 chọn hàng, 0 bỏ xuống sàn, Esc chọn lại.</li></ul>
+    </div><div class="row"><button class="btn green" id="closeRules">Đã hiểu</button></div>`, "rules");
+  $("closeRules").onclick=closeOverlay;
+}
+
+/* ================= BOOT ================= */
+$("createBtn").onclick=createRoom;
+$("joinBtn").onclick=joinRoom;
+$("botBtn").onclick=playBot;
+$("rulesBtn0").onclick=showRules;
+$("rulesBtn").onclick=()=>{ const prev=overlayId; showRules(); if(prev==="end") $("closeRules").onclick=showEnd; };
+$("copyBtn").onclick=()=>{ navigator.clipboard.writeText(roomLink()).then(()=>toast("Đã sao chép link!"),()=>toast("Không sao chép được, hãy copy thủ công.")); };
+$("codeInput").addEventListener("keydown",e=>{ if(e.key==="Enter") joinRoom(); });
+try{ const n=localStorage.getItem("azul-name"); if(n) $("nameInput").value=n; }catch(e){}
+const qs=new URLSearchParams(location.search);
+if(qs.get("room") && !qs.get("host")) $("codeInput").value=qs.get("room").toUpperCase();
+</script>
+</body>
+</html>
